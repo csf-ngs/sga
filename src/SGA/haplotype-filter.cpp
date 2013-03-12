@@ -299,10 +299,10 @@ void runSimulation()
     double d = 3;
 
     size_t min_o = 5;
-    size_t max_o = d * N;
+    size_t max_o = (size_t)(d * N);
     (void)min_o;
     (void)max_o;
-    srand(NULL);
+    srand(time(NULL));
     bool use_diploid = true;
 
     double fpr = 0.5;
@@ -446,46 +446,6 @@ double LMHaploidNonUniform(const std::vector<double>& depths, const std::vector<
         printf("HAP ParamEst o: %zu n0: %zu M1: %lf M2: %lf M_est %lf\n", (size_t)o, n0, M1, M2, M_est);
 
     return _haploidNonUniform(depths, sample_count, M2);
-    //double lsum = 0.0f;
-
-    // Bayesian integration model
-    //double p = o / N;
-#if 0
-    double best_M = -1;
-    double best_LM = -std::numeric_limits<double>::max();
-    double sum_exp = 0.0f;
-
-    double log_normalization = 0.0f;
-    for(size_t i = N - n0; i < N; ++i)
-    {
-        double log_prob_M = Stats::logPoisson(o, mean_depth*i) - log(i);
-        log_normalization = addLogs(log_normalization, log_prob_M);
-    }
-
-    for(size_t M = N - n0; M < N; M += 10)
-    {
-        double log_prob_M = Stats::logPoisson(o, mean_depth*M) - log_normalization - log(M);
-        double LM = _haploidNonUniform(depths, sample_count, M);
-        LM += log_prob_M;
-
-        //printf("M: %zu LM: %lf\n", i, LM);
-
-        if(LM > best_LM)
-        {
-            best_LM = LM;
-            best_M = M;
-        }
-    }
-    
-
-    double sum = log(sum_exp);
-    if(isinf(sum))
-        sum = 1000;
-
-//    if(opt::verbose)
-//        printf("Optimal %lf Sum: %lf is_inf %d\n", best_LM, sum, isinf(sum));
-    return best_LM;
-#endif
 }
 
 // 
@@ -656,7 +616,6 @@ double LMDiploidNonUniform(const std::vector<double>& depths, const std::vector<
     if(opt::verbose)
         printf("DIP ParamEst o: %zu n0: %zu M1: %lf M2: %lf M3: %lf M_est: %lf\n", (size_t)o, n0, M1, M2, M3, M_est);
     
-    double best_M = -1;
     double best_LM = -std::numeric_limits<double>::max();
     return _diploidNonUniform(depths, sample_count, M3);
 
@@ -668,7 +627,7 @@ double LMDiploidNonUniform(const std::vector<double>& depths, const std::vector<
     
     for(size_t M = min_alleles; M < max_alleles; M += stride)
     {
-        double log_prob_M = Stats::logPoisson(o, mean_depth * M) - log(M);
+        double log_prob_M = Stats::logPoisson((size_t)o, mean_depth * M) - log(M);
         if(!isnan(log_prob_M))
             log_normalization = addLogs(log_normalization, log_prob_M);
     }
@@ -676,7 +635,7 @@ double LMDiploidNonUniform(const std::vector<double>& depths, const std::vector<
     //
     for(size_t M = min_alleles; M < max_alleles; M += stride)
     {
-        double log_prob_M = Stats::logPoisson(o, mean_depth * M) - log_normalization - log(M);
+        double log_prob_M = Stats::logPoisson((size_t)o, mean_depth * M) - log_normalization - log(M);
         double LM = _diploidNonUniform(depths, sample_count, M);
         if(opt::verbose)
             printf("\tM: %zu log_prob_M %lf LM %lf\n", M, log_prob_M, LM);
@@ -685,7 +644,6 @@ double LMDiploidNonUniform(const std::vector<double>& depths, const std::vector<
         if(LM > best_LM)
         {
             best_LM = LM;
-            best_M = M;
         }
     }
     
@@ -840,8 +798,8 @@ std::vector<size_t> simulateCoverageDiploid(double d, size_t o, size_t N)
     
     // Proportion of non-reference alleles in the population
     double q = M / (2 * N);
-    size_t num_hom_alt = round(pow(q, 2) * N);
-    size_t num_het = M - (2*num_hom_alt);
+    size_t num_hom_alt = (size_t)round(pow(q, 2) * N);
+    size_t num_het = (size_t)(M - (2*num_hom_alt));
     
     if(opt::verbose > 0)
     {
@@ -856,7 +814,7 @@ std::vector<size_t> simulateCoverageDiploid(double d, size_t o, size_t N)
     std::random_shuffle(initial_indices.begin(), initial_indices.end());
 
     // The first num_hom_alt entries will carry two alleles
-    std::vector<size_t> final_indices(M);
+    std::vector<size_t> final_indices((size_t)M);
     for(size_t i = 0; i < num_hom_alt; ++i)
     {
         final_indices[2*i] = initial_indices[i];
@@ -937,7 +895,7 @@ std::vector<size_t> simulateCoverageHaploidNonUniform(std::vector<double> sample
     std::random_shuffle(initial_indices.begin(), initial_indices.end());
 
     // The first num_hom_alt entries will carry two alleles
-    std::vector<size_t> allele_indices(M);
+    std::vector<size_t> allele_indices((size_t)M);
     for(size_t i = 0; i < M; ++i)
         allele_indices[i] = initial_indices[i];
 
@@ -987,8 +945,8 @@ std::vector<size_t> simulateCoverageDiploidNonUniform(std::vector<double> sample
     
     // Proportion of non-reference alleles in the population
     double q = M / (2 * N);
-    size_t num_hom_alt = round(pow(q, 2) * N);
-    size_t num_het = M - (2*num_hom_alt);
+    size_t num_hom_alt = (size_t)round(pow(q, 2) * N);
+    size_t num_het = (size_t)(M - (2*num_hom_alt));
     
     if(opt::verbose > 0)
     {
@@ -1005,7 +963,7 @@ std::vector<size_t> simulateCoverageDiploidNonUniform(std::vector<double> sample
     std::vector<size_t> allele_count(N);
 
     // The first num_hom_alt entries will carry two alleles
-    std::vector<size_t> allele_indices(M);
+    std::vector<size_t> allele_indices((size_t)M);
     for(size_t i = 0; i < num_hom_alt; ++i)
     {
         allele_indices[2*i] = initial_indices[i];
